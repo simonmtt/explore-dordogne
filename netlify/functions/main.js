@@ -25,7 +25,6 @@ export const handler = async (event) => {
     }
 
     const progData = await progResponse.json();
-    // console.log(progData);
     const recommandationIds = progData.fields["Recommandations"];
 
     // Airtable does not return property if it is empty. Hence we check for existance of variable instead of !length>0
@@ -40,9 +39,12 @@ export const handler = async (event) => {
       throw new Error(`Failed to fetch data. Recommandations are empty.`);
     }
 
+    const recoOuputGeoCoded = await getRecommendationsGeoLoc(recoOutput);
+    console.log(recoOuputGeoCoded);
+
     return {
       statusCode: 200,
-      body: JSON.stringify(recoOutput),
+      body: JSON.stringify(recoOuputGeoCoded),
     };
   } catch (error) {
     return {
@@ -81,4 +83,52 @@ async function fetchRecommendations(recommandationIds) {
 
   const recoOutput = (await Promise.all(recoPromises)).filter(Boolean); // Filter out null values
   return recoOutput;
+}
+
+async function getRecommendationsGeoLoc(data) {
+  const mapsKey = "AIzaSyDNRCNw9iqXO0kLf1GKzcKIdKzHcPBWrRo";
+
+  const geoLocPromises = data.map(async (item) => {
+    const fields = item.fields;
+    const nom = fields["Nom du lieu"][0];
+    const adresse = fields["Adresse postale"][0];
+    const query = `${nom} ${adresse}`.replace(/ /g, "+");
+    console.log(query);
+
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsKey}`;
+
+    try {
+      const geoLocResponse = await fetch(url);
+      if (geoLocResponse.ok) {
+        const geoLocData = await geoLocResponse.json();
+        const result = geoLocData.results[0];
+
+        if (!result) {
+          console.error(`Failed to fetch geo loc for ${nom} ${adresse}`);
+          return null;
+        }
+
+        const geo = result.geometry;
+        const lat = geo.location.lat;
+        const lng = geo.location.lng;
+        const fullAddress = result.formatted_address;
+
+        item.coordinates = { lat, lng };
+        item.fullAddress = fullAddress;
+
+        return item;
+      } else {
+        console.error(`Failed to fetch geo loc for ${nom} ${adresse}`);
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        `Failed to fetch geo loc for ${nom} ${adresse}: ${error.message}`
+      );
+      return null;
+    }
+  });
+
+  const geoLocOutput = (await Promise.all(geoLocPromises)).filter(Boolean);
+  return geoLocOutput;
 }
