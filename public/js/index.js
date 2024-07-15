@@ -40,7 +40,7 @@ function buildListItems(dataArray) {
           : "-"
       }
       <span class="badge text-bg-primary rounded-pill">${
-        data.fields.Index || 0
+        data.fields['Catégorie'][0] || 0
       }</span>
     </li>
   `
