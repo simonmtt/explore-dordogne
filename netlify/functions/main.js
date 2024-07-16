@@ -27,26 +27,25 @@ export const handler = async (event) => {
     const progData = await progResponse.json();
     const recommandationIds = progData.fields["Recommandations"];
 
-    // Airtable does not return property if it is empty. Hence we check for existance of variable instead of !length>0
     if (!recommandationIds) {
       throw new Error(
-        `Failed to fetch data: Program has no linked recommandations.`
+        `Failed to fetch data: Program has no linked recommendations.`
       );
     }
 
     const recoOutput = await fetchRecommendations(recommandationIds);
-    if (!recoOutput.length > 0) {
-      throw new Error(`Failed to fetch data. Recommandations are empty.`);
+    if (!recoOutput.length) {
+      throw new Error(`Failed to fetch data. Recommendations are empty.`);
     }
 
-    const recoOuputGeoCoded = await getRecommendationsGeoLoc(recoOutput);
-    console.log(recoOuputGeoCoded);
+    const enrichedData = await initPage(recoOutput);
 
     return {
       statusCode: 200,
-      body: JSON.stringify(recoOuputGeoCoded),
+      body: JSON.stringify(enrichedData),
     };
   } catch (error) {
+    console.error(`Error in handler: ${error.message}`);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message }),
@@ -93,7 +92,6 @@ async function getRecommendationsGeoLoc(data) {
     const nom = fields["Nom du lieu"][0];
     const adresse = fields["Adresse postale"][0];
     const query = `${nom} ${adresse}`.replace(/ /g, "+");
-    console.log(query);
 
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsKey}`;
 
@@ -132,3 +130,292 @@ async function getRecommendationsGeoLoc(data) {
   const geoLocOutput = (await Promise.all(geoLocPromises)).filter(Boolean);
   return geoLocOutput;
 }
+
+async function getRecommendationsTagsColor(recommendations) {
+  try {
+    const url = `${AIRTABLE_BASE_URL}/meta/bases/${AIRTABLE_BASE_ID}/tables`;
+    const baseSchemaResponse = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+      },
+    });
+
+    if (!baseSchemaResponse.ok) {
+      console.error(`Failed to access base schema`);
+      return recommendations;
+    }
+
+    const baseSchemaData = await baseSchemaResponse.json();
+
+    if (!baseSchemaData) {
+      console.error(`Failed to access base schema (json step)`);
+      return recommendations;
+    }
+
+    const tables = baseSchemaData.tables;
+
+    if (!tables || tables.length === 0) {
+      console.error(`Failed to access base schema (no tables)`);
+      return recommendations;
+    }
+
+    const fields = tables.filter((table) => table.name === "Adresses")[0]
+      .fields;
+    const categories = fields.filter((field) => field.name === "Catégorie")[0]
+      .options.choices;
+
+    const defaultColor = airtableColors.filter(
+      (color) => color.name === "darken3"
+    )[0].value;
+
+    recommendations.forEach((reco) => {
+      const fields = reco.fields;
+      if (fields) {
+        const recoCategory = fields["Catégorie"][0];
+        const recoCatObj = categories.filter(
+          (cat) => cat.name === recoCategory
+        )[0];
+        if (recoCatObj) {
+          const airtableColor = recoCatObj.color;
+          const tagColor = airtableColors.filter(
+            (color) => color.name === airtableColor
+          )[0];
+          reco.tagColor = tagColor ? tagColor.value : defaultColor;
+        } else {
+          reco.tagColor = defaultColor;
+        }
+      }
+    });
+
+    return recommendations;
+  } catch (error) {
+    console.error(`Error in getTagColors: ${error.message}`);
+    return recommendations;
+  }
+}
+
+async function initPage(data) {
+  data = await getRecommendationsTagsColor(data);
+  data = await getRecommendationsGeoLoc(data);
+  return data;
+}
+
+// array with all of Airtable Colors
+const airtableColors = [
+  {
+    name: "blue",
+    value: "#1283DA",
+  },
+  {
+    name: "blueLight1",
+    value: "#9CC7FF",
+  },
+  {
+    name: "blueLight2",
+    value: "#CFDFFF",
+  },
+  {
+    name: "blueBright",
+    value: "#2D7FF9",
+  },
+  {
+    name: "blueDark1",
+    value: "#2750AE",
+  },
+  {
+    name: "cyan",
+    value: "#01A9DB",
+  },
+  {
+    name: "cyanLight1",
+    value: "#77D1F3",
+  },
+  {
+    name: "cyanLight2",
+    value: "#D0F0FD",
+  },
+  {
+    name: "cyanBright",
+    value: "#18BFFF",
+  },
+  {
+    name: "cyanDark1",
+    value: "#0B76B7",
+  },
+  {
+    name: "teal",
+    value: "#02AAA4",
+  },
+  {
+    name: "tealLight1",
+    value: "#72DDC3",
+  },
+  {
+    name: "tealLight2",
+    value: "#C2F5E9",
+  },
+  {
+    name: "tealBright",
+    value: "#20D9D2",
+  },
+  {
+    name: "tealDark1",
+    value: "#06A09B",
+  },
+  {
+    name: "green",
+    value: "#11AF22",
+  },
+  {
+    name: "greenLight1",
+    value: "#93E088",
+  },
+  {
+    name: "greenLight2",
+    value: "#D1F7C4",
+  },
+  {
+    name: "greenBright",
+    value: "#20C933",
+  },
+  {
+    name: "greenDark1",
+    value: "#338A17",
+  },
+  {
+    name: "yellow",
+    value: "#E08D00",
+  },
+  {
+    name: "yellowLight1",
+    value: "#FFD66E",
+  },
+  {
+    name: "yellowLight2",
+    value: "#FFEAB6",
+  },
+  {
+    name: "yellowBright",
+    value: "#FCB400",
+  },
+  {
+    name: "yellowDark1",
+    value: "#B87503",
+  },
+  {
+    name: "orange",
+    value: "#F7653B",
+  },
+  {
+    name: "orangeLight1",
+    value: "#FFA981",
+  },
+  {
+    name: "orangeLight2",
+    value: "#FEE2D5",
+  },
+  {
+    name: "orangeBright",
+    value: "#FF6F2C",
+  },
+  {
+    name: "orangeDark1",
+    value: "#D74D26",
+  },
+  {
+    name: "red",
+    value: "#EF3061",
+  },
+  {
+    name: "redLight1",
+    value: "#FF9EB7",
+  },
+  {
+    name: "redLight2",
+    value: "#FFDCE5",
+  },
+  {
+    name: "redBright",
+    value: "#F82B60",
+  },
+  {
+    name: "redDark1",
+    value: "#BA1E45",
+  },
+  {
+    name: "pink",
+    value: "#E929BA",
+  },
+  {
+    name: "pinkLight1",
+    value: "#F99DE2",
+  },
+  {
+    name: "pinkLight2",
+    value: "#FFDAF6",
+  },
+  {
+    name: "pinkBright",
+    value: "#FF08C2",
+  },
+  {
+    name: "pinkDark1",
+    value: "#B2158B",
+  },
+  {
+    name: "purple",
+    value: "#7C39ED",
+  },
+  {
+    name: "purpleLight1",
+    value: "#CDB0FF",
+  },
+  {
+    name: "purpleLight2",
+    value: "#EDE2FE",
+  },
+  {
+    name: "purpleBright",
+    value: "#8B46FF",
+  },
+  {
+    name: "purpleDark1",
+    value: "#6B1CB0",
+  },
+  {
+    name: "gray",
+    value: "#666666",
+  },
+  {
+    name: "grayLight1",
+    value: "#CCCCCC",
+  },
+  {
+    name: "grayLight2",
+    value: "#EEEEEE",
+  },
+  {
+    name: "grayBright",
+    value: "#666666",
+  },
+  {
+    name: "grayDark1",
+    value: "#444444",
+  },
+  {
+    name: "darken1",
+    value: "rgba(0,0,0,0.05)",
+  },
+  {
+    name: "darken2",
+    value: "rgba(0,0,0,0.1)",
+  },
+  {
+    name: "darken3",
+    value: "rgba(0,0,0,0.25)",
+  },
+  {
+    name: "darken4",
+    value: "rgba(0,0,0,0.5)",
+  },
+];

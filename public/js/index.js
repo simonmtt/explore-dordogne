@@ -49,9 +49,11 @@ function buildListItems(dataArray) {
             <h5 class="card-title d-flex justify-content-between align-items-center">
             ${data.fields["Nom du lieu"] ? data.fields["Nom du lieu"][0] : "-"}
             </h5>
-            <span class="badge text-bg-primary rounded-pill">${
-              data.fields["Catégorie"][0] || 0
-            }</span>
+            <span class="badge ${
+              data.tagColor ? "" : "text-bg-primary"
+            } rounded-pill" ${
+        data.tagColor ? `style="background-color: ${data.tagColor}"` : ""
+      }>${data.fields["Catégorie"][0] || 0}</span>
           </div>
            <p class="card-text">${data.fields["Description"][0]}</p>
            ${
@@ -78,6 +80,7 @@ async function initMap(data) {
 
   const { Map } = await google.maps.importLibrary("maps");
   const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+  const { PinElement } = await google.maps.importLibrary("marker");
 
   map = new Map(document.querySelector("#map"), {
     center: mapCoordinates,
@@ -86,10 +89,18 @@ async function initMap(data) {
   });
 
   data.forEach((item) => {
+    const borderColor = darkenHexColor(item.tagColor, 25) || '#000000';
+    const pin = new PinElement({
+      background: item.tagColor,
+      borderColor,
+      glyphColor: borderColor
+    });
     const marker = new AdvancedMarkerElement({
       map,
       position: item.coordinates,
       title: item.fullAdress,
+      content: pin.element,
+      gmpClickable: true
     });
 
     const itemId = item.id;
@@ -97,7 +108,8 @@ async function initMap(data) {
       const element = document.querySelector(`#${item.id}`);
       if (element) {
         element.setAttribute("tabindex", "-1"); // Make the element focusable
-        element.querySelector(".card-body").addEventListener("click", () => {
+        // element.querySelector(".card-body").addEventListener("click", () => {
+        element.addEventListener("click", () => {
           map.panTo(item.coordinates);
           map.setZoom(14);
           element.focus();
@@ -146,4 +158,33 @@ function buildCarousel(data) {
       `;
 
   return carousel;
+}
+
+function darkenHexColor(hex, percent) {
+  // Ensure the hex color starts with a '#'
+  if (hex.charAt(0) === "#") {
+    hex = hex.slice(1);
+  }
+
+  // Parse the r, g, b values
+  let r = parseInt(hex.substring(0, 2), 16);
+  let g = parseInt(hex.substring(2, 4), 16);
+  let b = parseInt(hex.substring(4, 6), 16);
+
+  // Calculate the darker color
+  r = Math.floor(r * (1 - percent / 100));
+  g = Math.floor(g * (1 - percent / 100));
+  b = Math.floor(b * (1 - percent / 100));
+
+  // Ensure the values are within the valid range
+  r = Math.max(0, Math.min(255, r));
+  g = Math.max(0, Math.min(255, g));
+  b = Math.max(0, Math.min(255, b));
+
+  // Convert the r, g, b values back to hex
+  const newHex = `#${r.toString(16).padStart(2, "0")}${g
+    .toString(16)
+    .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+
+  return newHex;
 }
