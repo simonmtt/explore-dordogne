@@ -81,9 +81,9 @@ img.d-block.w-100 {
         flex-direction: column;
     }
 
-    .focus-ring:focus {
+    /* .focus-ring:focus {
         box-shadow: none;
-    }
+    } */
 
     .card-text {
         text-wrap: wrap;
@@ -105,6 +105,7 @@ img.d-block.w-100 {
         transition: height 0.3s ease;
         z-index: 2;
         align-items: center;
+        box-shadow: rgba(0, 0, 0, 0.56) 0px 22px 70px 4px;
     }
 
     .list-group.expanded {

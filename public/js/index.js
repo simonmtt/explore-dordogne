@@ -40,14 +40,18 @@ document.addEventListener("DOMContentLoaded", async () => {
 function buildListItems(data) {
   const { recommendations } = data;
   const listItemsString = recommendations
-    .map((item) => {
+    .map((item, i) => {
       return `
       <li class="card mb-4 focus-ring" id="${item.id}">
            ${buildCarousel(item)}          
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="card-title mb-0">
-            ${item.fields["Nom du lieu"] ? item.fields["Nom du lieu"][0] : "-"}
+            ${
+              item.fields["Nom du lieu"]
+                ? `${i + 1} - ${item.fields["Nom du lieu"][0]}`
+                : "-"
+            }
             </h5>
             <span class="badge ${
               item.tagColor ? "" : "text-bg-primary"
@@ -108,7 +112,7 @@ async function initMap(data) {
   }
 
   //const infoWindow = new google.maps.InfoWindow();
-
+  let markers = [];
   data.forEach((item) => {
     const borderColor = darkenHexColor(item.tagColor, 25) || "#000000";
     const pin = new PinElement({
@@ -127,13 +131,14 @@ async function initMap(data) {
     });
 
     marker.customId = item.id;
+    markers.push(marker);
 
     // Function to handle marker click
     const handleMarkerClick = () => {
       if (marker.customId) {
         const element = document.querySelector(`#${marker.customId}`);
         if (element) {
-          element.scrollIntoView({ behavior: "smooth" });          
+          element.scrollIntoView({ behavior: "smooth" });
           setMapZoom();
           element.focus();
         } else {
@@ -157,14 +162,14 @@ async function initMap(data) {
 
     // Helper function to set zoom level
     const setMapZoom = () => {
-      map.setZoom(13);
+      map.setZoom(14);
       map.panTo(item.coordinates);
     };
   });
 
   // Map event listeners for mobile behavior
   if (window.innerWidth < 768) {
-    handleMobileList(map);
+    handleMobileList(map, markers);
   }
 }
 
@@ -238,7 +243,7 @@ function darkenHexColor(hex, percent) {
   return newHex;
 }
 
-function handleMobileList(map) {
+function handleMobileList(map, markers) {
   let isExpanded = false; // Track whether the list is expanded
   const listGroup = document.querySelector("#responseList"); // Get the list group element
 
@@ -271,6 +276,9 @@ function handleMobileList(map) {
     });
   });
 
+  // Used by 2 functions
+  const itemOffset = 16;
+
   // Add click event listener for the list group
   listGroup.addEventListener("click", (event) => {
     // console.log("Click event on list group");
@@ -287,7 +295,6 @@ function handleMobileList(map) {
     }
 
     if (event.target.closest("li")) {
-      const itemOffset = 16;
       const item = event.target.closest("li");
       const itemTop = item.offsetTop - itemOffset; // Get the top position of the clicked item
 
@@ -307,6 +314,21 @@ function handleMobileList(map) {
       // console.log("Removing hidden class from list group");
       updateListState(); // Update the list state
     }
+  });
+
+  markers.forEach((marker) => {
+    marker.addListener("click", () => {
+      listGroup.classList.remove("hidden");
+      isExpanded = true;
+      updateListState();
+      if (marker.customId) {
+        const element = document.querySelector(`#${marker.customId}`);
+        if (element) {
+          const itemTop = element.offsetTop - itemOffset;
+          listGroup.scrollTop = itemTop;
+        }
+      }
+    });
   });
 }
 
