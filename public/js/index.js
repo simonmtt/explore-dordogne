@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     const recoData = await response.json();
+    console.log(recoData)
 
     if (recoData.error) {
       throw new Error(recoData.error);
@@ -64,6 +65,13 @@ function buildListItems(data) {
              item.fields["Description personnalisée"]
                ? `<p class="card-text fw-medium mt-4 mb-1">A word from us, to you:</p>
              <p class="card-text fw-light">${item.fields["Description personnalisée"]}</p>`
+               : ``
+           }
+           ${
+             item.fields["Lien"]
+               ? `<a class="btn btn-secondary" href="${item.fields["Lien"]}" target="_blank">${
+                   item.fields["Message du lien"] || "Access"
+                 }</a>`
                : ``
            }
         </div>
@@ -288,7 +296,8 @@ function handleMobileList(map, markers) {
       event.target.closest(".carousel-control-next") ||
       event.target.closest(".carousel-control-prev") ||
       event.target.closest(".carousel-control-next-icon") ||
-      event.target.closest(".carousel-control-prev-icon")
+      event.target.closest(".carousel-control-prev-icon") ||
+      event.target.closest(".btn")
     ) {
       // console.log("Clicked on carousel control, ignoring click event.");
       return; // Do nothing if a carousel control was clicked
@@ -326,6 +335,7 @@ function handleMobileList(map, markers) {
         if (element) {
           const itemTop = element.offsetTop - itemOffset;
           listGroup.scrollTop = itemTop;
+          element.focus();
         }
       }
     });
