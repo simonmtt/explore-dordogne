@@ -38,11 +38,15 @@ export const handler = async (event) => {
       throw new Error(`Failed to fetch data. Recommendations are empty.`);
     }
 
-    const enrichedData = await initPage(recoOutput);
+    const enrichedData = await enrichData(recoOutput);
+    const result = {
+      description: progData.fields["Description"],      
+      recommendations: enrichedData,
+    };
 
     return {
       statusCode: 200,
-      body: JSON.stringify(enrichedData),
+      body: JSON.stringify(result),
     };
   } catch (error) {
     console.error(`Error in handler: ${error.message}`);
@@ -194,7 +198,7 @@ async function getRecommendationsTagsColor(recommendations) {
   }
 }
 
-async function initPage(data) {
+async function enrichData(data) {
   data = await getRecommendationsTagsColor(data);
   data = await getRecommendationsGeoLoc(data);
   return data;

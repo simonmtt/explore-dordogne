@@ -18,14 +18,14 @@ document.addEventListener("DOMContentLoaded", async () => {
       throw new Error(recoData.error);
     }
 
-    initMap(recoData);
+    initMap(recoData.recommendations);
 
     const ulElement = document.querySelector("#responseList");
     if (ulElement) {
       ulElement.innerHTML = buildListItems(recoData);
 
       // activate bootstrap carousels
-      recoData.forEach((item) => {
+      recoData.recommendations.forEach((item) => {
         const carouselId = `#${item.id}-slider`;
         const carousel = document.querySelector(carouselId);
         if (carousel) {
@@ -33,33 +33,37 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
     }
+
+    // add behavior to list on mobile
+    handleMobileList();
   } catch (error) {
     //
   }
 });
 
-function buildListItems(dataArray) {
-  return dataArray
-    .map((data) => {
+function buildListItems(data) {
+  const { recommendations } = data;
+  const listItemsString = recommendations
+    .map((item) => {
       return `
-      <li class="card mb-4 focus-ring" id="${data.id}">
-           ${buildCarousel(data)}          
+      <li class="card mb-4 focus-ring" id="${item.id}">
+           ${buildCarousel(item)}          
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <h5 class="card-title d-flex justify-content-between align-items-center">
-            ${data.fields["Nom du lieu"] ? data.fields["Nom du lieu"][0] : "-"}
+            ${item.fields["Nom du lieu"] ? item.fields["Nom du lieu"][0] : "-"}
             </h5>
             <span class="badge ${
-              data.tagColor ? "" : "text-bg-primary"
+              item.tagColor ? "" : "text-bg-primary"
             } rounded-pill" ${
-        data.tagColor ? `style="background-color: ${data.tagColor}"` : ""
-      }>${data.fields["Catégorie"][0] || 0}</span>
+        item.tagColor ? `style="background-color: ${item.tagColor}"` : ""
+      }>${item.fields["Catégorie"][0] || 0}</span>
           </div>
-           <p class="card-text">${data.fields["Description"][0]}</p>
+           <p class="card-text">${item.fields["Description"][0]}</p>
            ${
-             data.fields["Description personnalisée"]
+             item.fields["Description personnalisée"]
                ? `<p class="card-text fw-medium mt-4 mb-1">A word from us, to you:</p>
-             <p class="card-text fw-light">${data.fields["Description personnalisée"]}</p>`
+             <p class="card-text fw-light">${item.fields["Description personnalisée"]}</p>`
                : ``
            }
         </div>
@@ -67,6 +71,18 @@ function buildListItems(dataArray) {
   `;
     })
     .join("");
+  const description = `
+  <div class="mb-4">
+    <blockquote class="blockquote">
+      ${data.description}
+    </blockquote>
+    <figcaption class="blockquote-footer mt-0">
+      Explore Dordogne Team
+    </figcaption>
+  </div>
+  `;
+  const mobileLine = `<div class="list-group_mobile-line"></div>`;
+  return `${description}${listItemsString}${mobileLine}`;
 }
 
 async function initMap(data) {
@@ -88,19 +104,27 @@ async function initMap(data) {
     mapId,
   });
 
+  // Attach event listener to the reset zoom button
+  const resetZoomElement = document.querySelector(".reset-zoom");
+  if (resetZoomElement) {
+    resetZoomElement.addEventListener("click", () => {
+      resetZoom(map, mapCoordinates, zoom); // Pass the map instance, coordinates and zoom info
+    });
+  }
+
   data.forEach((item) => {
-    const borderColor = darkenHexColor(item.tagColor, 25) || '#000000';
+    const borderColor = darkenHexColor(item.tagColor, 25) || "#000000";
     const pin = new PinElement({
       background: item.tagColor,
       borderColor,
-      glyphColor: borderColor
+      glyphColor: borderColor,
     });
     const marker = new AdvancedMarkerElement({
       map,
       position: item.coordinates,
       title: item.fullAdress,
       content: pin.element,
-      gmpClickable: true
+      gmpClickable: true,
     });
 
     const itemId = item.id;
@@ -187,4 +211,51 @@ function darkenHexColor(hex, percent) {
     .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 
   return newHex;
+}
+
+function handleMobileList() {
+  const listGroup = document.querySelector("#responseList");
+  
+  // Initial state to track if the list is expanded
+  let isExpanded = false;
+
+  // Toggle the expanded class on click
+  listGroup.addEventListener("click", (event) => {
+    // Check if the click target is a carousel control
+    if (!event.target.closest('.carousel-control-next') && 
+        !event.target.closest('.carousel-control-prev')) {
+      listGroup.classList.toggle("expanded");
+      isExpanded = !isExpanded; // Update the state
+    }
+  });
+  
+  let startY;
+  let endY;
+
+  listGroup.addEventListener("touchstart", (event) => {
+    startY = event.touches[0].clientY;
+  });
+
+  listGroup.addEventListener("touchmove", (event) => {
+    endY = event.touches[0].clientY;
+  });
+
+  listGroup.addEventListener("touchend", () => {
+    const threshold = 125; // Define a threshold for swipe detection
+
+    if (startY > endY + threshold && !isExpanded) {
+      // User swiped up and the list is not expanded
+      listGroup.classList.add("expanded");
+      isExpanded = true; // Update the state
+    } else if (startY < endY - threshold && isExpanded) {
+      // User swiped down and the list is expanded
+      listGroup.classList.remove("expanded");
+      isExpanded = false; // Update the state
+    }
+  });
+}
+
+function resetZoom(map, coordinates, zoom) {
+  map.setCenter(coordinates);
+  map.setZoom(zoom);
 }
