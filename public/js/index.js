@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     const recoData = await response.json();
-    console.log(recoData);
 
     if (recoData.error) {
       throw new Error(recoData.error);
@@ -33,9 +32,6 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
       });
     }
-
-    // add behavior to list on mobile
-    handleMobileList();
   } catch (error) {
     //
   }
@@ -49,8 +45,8 @@ function buildListItems(data) {
       <li class="card mb-4 focus-ring" id="${item.id}">
            ${buildCarousel(item)}          
         <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5 class="card-title d-flex justify-content-between align-items-center">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">
             ${item.fields["Nom du lieu"] ? item.fields["Nom du lieu"][0] : "-"}
             </h5>
             <span class="badge ${
@@ -86,7 +82,6 @@ function buildListItems(data) {
 }
 
 async function initMap(data) {
-  let map;
   const mapCoordinates = {
     lat: 45.2156806,
     lng: 1.2922841,
@@ -98,7 +93,7 @@ async function initMap(data) {
   const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
   const { PinElement } = await google.maps.importLibrary("marker");
 
-  map = new Map(document.querySelector("#map"), {
+  const map = new Map(document.querySelector("#map"), {
     center: mapCoordinates,
     zoom,
     mapId,
@@ -108,7 +103,7 @@ async function initMap(data) {
   const resetZoomElement = document.querySelector(".reset-zoom");
   if (resetZoomElement) {
     resetZoomElement.addEventListener("click", () => {
-      resetZoom(map, mapCoordinates, zoom); // Pass the map instance, coordinates, and zoom info
+      resetZoom(map, mapCoordinates, zoom);
     });
   }
 
@@ -119,7 +114,7 @@ async function initMap(data) {
       borderColor,
       glyphColor: borderColor,
     });
-    const marker = new AdvancedMarkerElement({
+    new AdvancedMarkerElement({
       map,
       position: item.coordinates,
       title: item.fullAdress,
@@ -131,8 +126,9 @@ async function initMap(data) {
     if (itemId) {
       const element = document.querySelector(`#${item.id}`);
       if (element) {
-        element.setAttribute("tabindex", "-1"); // Make the element focusable
+        element.setAttribute("tabindex", "-1");
         element.addEventListener("click", () => {
+          console.log(`Clicked on ${item.id}`);
           map.panTo(item.coordinates);
           map.setZoom(14);
           element.focus();
@@ -141,16 +137,10 @@ async function initMap(data) {
     }
   });
 
-  // Move map event listeners here
-  const listGroup = document.querySelector("#responseList");
-  const toggleListVisibility = () => {
-    listGroup.classList.remove("expanded");
-    listGroup.scrollTop = 0; // Scroll back to the top when hidden
-  };
-
-  ["drag", "idle", "click"].forEach((event) => {
-    map.addListener(event, toggleListVisibility);
-  });
+  // Map event listeners for mobile behavior
+  if (window.innerWidth < 768) {
+    handleMobileList(map);
+  }
 }
 
 function buildCarousel(data) {
@@ -223,50 +213,74 @@ function darkenHexColor(hex, percent) {
   return newHex;
 }
 
-function handleMobileList() {
-  const listGroup = document.querySelector("#responseList");
+function handleMobileList(map) {
+  let isExpanded = false; // Track whether the list is expanded
+  const listGroup = document.querySelector("#responseList"); // Get the list group element
 
-  // Initial state to track if the list is expanded
-  let isExpanded = false;
-
-  // Toggle the expanded class on click
-  listGroup.addEventListener("click", (event) => {
-    if (
-      !event.target.closest(".carousel-control-next") &&
-      !event.target.closest(".carousel-control-prev")
-    ) {
-      isExpanded = !isExpanded;
-      listGroup.classList.toggle("expanded", isExpanded);      
-
-      // Scroll to the top when collapsing
-      if (!isExpanded) {
-        listGroup.scrollTop = 0;
-      }
-    }
-  });
-
-  let startY;
-  let endY;
-
-  listGroup.addEventListener("touchstart", (event) => {
-    startY = event.touches[0].clientY;
-  });
-
-  listGroup.addEventListener("touchmove", (event) => {
-    endY = event.touches[0].clientY;
-  });
-
-  listGroup.addEventListener("touchend", () => {
-    const threshold = 125; // Define a threshold for swipe detection
-    const isAtTop = listGroup.scrollTop === 0;
-
-    if (startY > endY + threshold && !isExpanded && isAtTop) {
-      isExpanded = true;
-      listGroup.classList.add("expanded");      
-    } else if (startY < endY - threshold && isExpanded) {
-      isExpanded = false;
+  // Function to update the list's state (expanded/collapsed)
+  const updateListState = () => {
+    if (isExpanded) {
+      console.log("Expanding list group");
+      listGroup.classList.add("expanded");
+      listGroup.classList.remove("hidden");
+    } else {
+      console.log("Collapsing list group");
       listGroup.classList.remove("expanded");
-      listGroup.scrollTop = 0; // Scroll back to the top
+      //listGroup.scrollTop = 0; // Scroll back to the top when collapsing
+    }
+  };
+
+  // Function to hide the list due to map interaction
+  const hideList = () => {
+    console.log("Hiding list due to map interaction");
+    isExpanded = false; // Collapse the list
+    listGroup.classList.add("hidden");
+    updateListState();
+  };
+
+  // Add event listeners for map interactions (drag and click)
+  ["drag", "click"].forEach((event) => {
+    map.addListener(event, () => {
+      console.log(`Map event triggered: ${event}`);
+      hideList(); // Hide the list on map interaction
+    });
+  });
+
+  // Add click event listener for the list group
+  listGroup.addEventListener("click", (event) => {
+    console.log("Click event on list group");
+    console.log(`isExpanded before click: ${isExpanded}`);
+
+    if (
+      event.target.closest(".carousel-control-next") ||
+      event.target.closest(".carousel-control-prev") ||
+      event.target.closest(".carousel-control-next-icon") ||
+      event.target.closest(".carousel-control-prev-icon")
+    ) {
+      console.log("Clicked on carousel control, ignoring click event.");
+      return; // Do nothing if a carousel control was clicked
+    }
+
+    if (event.target.closest("li")) {
+      const itemOffset = 16;
+      const item = event.target.closest("li");
+      const itemTop = item.offsetTop - itemOffset; // Get the top position of the clicked item
+
+      // Scroll to the top of the clicked item
+      listGroup.scrollTop = itemTop;
+    }
+
+    if (isExpanded) {
+      // If the list is expanded, collapse it without hiding
+      console.log("Collapsing list group without hiding");
+      isExpanded = false;
+      updateListState(); // Update the list state
+    } else {
+      // If the list is hidden, remove hidden and expand it
+      listGroup.classList.remove("hidden");
+      isExpanded = true; // Expand the list
+      console.log("Removing hidden class from list group");
+      updateListState(); // Update the list state
     }
   });
 }

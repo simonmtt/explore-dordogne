@@ -1,3 +1,7 @@
+:root {
+    --img-mobile-size: 180px;
+}
+
 .card-text {
     text-wrap: balance;
 }
@@ -77,13 +81,21 @@ img.d-block.w-100 {
         flex-direction: column;
     }
 
+    .focus-ring:focus {
+        box-shadow: none;
+    }
+
+    .card-text {
+        text-wrap: wrap;
+    }
+
     .list-group {
         position: fixed;
         overflow: hidden;
         bottom: 0;
         left: 0;
         right: 0;
-        height: 16svh; /* Initial height to show the tip */
+        height: 28svh; /* Initial height to show the tip */
         max-width: 100%;
         padding: 2rem 1rem 1rem 1rem;
         background: #fff;
@@ -96,12 +108,12 @@ img.d-block.w-100 {
     }
 
     .list-group.expanded {
-        height: 90svh; /* Height when expanded */
+        height: 80svh; /* Height when expanded */
         overflow-y: auto;
     }
 
     .list-group.hidden {
-        height: 8svh; /* Height when expanded */
+        height: 10svh; /* Height when expanded */
         overflow-y: hidden;
     }
     
@@ -111,7 +123,7 @@ img.d-block.w-100 {
     }
 
     .card-img-top_wrapper, .carousel.slide {
-        height: 180px;
+        height: var(--img-mobile-size);
     }
 
     .list-group_mobile-line {
