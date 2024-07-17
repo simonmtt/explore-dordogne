@@ -83,10 +83,10 @@ function buildListItems(data) {
 
 async function initMap(data) {
   const mapCoordinates = {
-    lat: 45.2156806,
-    lng: 1.2922841,
+    lat: 44.682658,
+    lng: 1.753015,
   };
-  const zoom = 9;
+  const zoom = 8;
   const mapId = "8b0247e6d638ccc9";
 
   const { Map } = await google.maps.importLibrary("maps");
@@ -107,34 +107,59 @@ async function initMap(data) {
     });
   }
 
+  //const infoWindow = new google.maps.InfoWindow();
+
   data.forEach((item) => {
     const borderColor = darkenHexColor(item.tagColor, 25) || "#000000";
     const pin = new PinElement({
       background: item.tagColor,
       borderColor,
-      glyphColor: borderColor,
+      glyph: "",
+      scale: 1.2,
     });
-    new AdvancedMarkerElement({
+
+    const marker = new AdvancedMarkerElement({
       map,
       position: item.coordinates,
-      title: item.fullAdress,
+      title: item.fullAddress,
       content: pin.element,
       gmpClickable: true,
     });
 
-    const itemId = item.id;
-    if (itemId) {
+    marker.customId = item.id;
+
+    // Function to handle marker click
+    const handleMarkerClick = () => {
+      if (marker.customId) {
+        const element = document.querySelector(`#${marker.customId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });          
+          setMapZoom();
+          element.focus();
+        } else {
+          console.warn(`Element with ID ${marker.customId} not found`);
+        }
+      }
+    };
+
+    marker.addListener("click", handleMarkerClick);
+
+    if (item.id) {
       const element = document.querySelector(`#${item.id}`);
       if (element) {
         element.setAttribute("tabindex", "-1");
         element.addEventListener("click", () => {
-          console.log(`Clicked on ${item.id}`);
-          map.panTo(item.coordinates);
-          map.setZoom(14);
+          setMapZoom();
           element.focus();
         });
       }
     }
+
+    // Helper function to set zoom level
+    const setMapZoom = () => {
+      map.setZoom(13);
+      map.panTo(item.coordinates);
+    };
   });
 
   // Map event listeners for mobile behavior
@@ -220,11 +245,11 @@ function handleMobileList(map) {
   // Function to update the list's state (expanded/collapsed)
   const updateListState = () => {
     if (isExpanded) {
-      console.log("Expanding list group");
+      // console.log("Expanding list group");
       listGroup.classList.add("expanded");
       listGroup.classList.remove("hidden");
     } else {
-      console.log("Collapsing list group");
+      // console.log("Collapsing list group");
       listGroup.classList.remove("expanded");
       //listGroup.scrollTop = 0; // Scroll back to the top when collapsing
     }
@@ -232,7 +257,7 @@ function handleMobileList(map) {
 
   // Function to hide the list due to map interaction
   const hideList = () => {
-    console.log("Hiding list due to map interaction");
+    // console.log("Hiding list due to map interaction");
     isExpanded = false; // Collapse the list
     listGroup.classList.add("hidden");
     updateListState();
@@ -241,15 +266,15 @@ function handleMobileList(map) {
   // Add event listeners for map interactions (drag and click)
   ["drag", "click"].forEach((event) => {
     map.addListener(event, () => {
-      console.log(`Map event triggered: ${event}`);
+      // console.log(`Map event triggered: ${event}`);
       hideList(); // Hide the list on map interaction
     });
   });
 
   // Add click event listener for the list group
   listGroup.addEventListener("click", (event) => {
-    console.log("Click event on list group");
-    console.log(`isExpanded before click: ${isExpanded}`);
+    // console.log("Click event on list group");
+    // console.log(`isExpanded before click: ${isExpanded}`);
 
     if (
       event.target.closest(".carousel-control-next") ||
@@ -257,7 +282,7 @@ function handleMobileList(map) {
       event.target.closest(".carousel-control-next-icon") ||
       event.target.closest(".carousel-control-prev-icon")
     ) {
-      console.log("Clicked on carousel control, ignoring click event.");
+      // console.log("Clicked on carousel control, ignoring click event.");
       return; // Do nothing if a carousel control was clicked
     }
 
@@ -272,14 +297,14 @@ function handleMobileList(map) {
 
     if (isExpanded) {
       // If the list is expanded, collapse it without hiding
-      console.log("Collapsing list group without hiding");
+      // console.log("Collapsing list group without hiding");
       isExpanded = false;
       updateListState(); // Update the list state
     } else {
       // If the list is hidden, remove hidden and expand it
       listGroup.classList.remove("hidden");
       isExpanded = true; // Expand the list
-      console.log("Removing hidden class from list group");
+      // console.log("Removing hidden class from list group");
       updateListState(); // Update the list state
     }
   });
