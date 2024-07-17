@@ -281,6 +281,7 @@ function handleMobileList(map, markers) {
     map.addListener(event, () => {
       // console.log(`Map event triggered: ${event}`);
       hideList(); // Hide the list on map interaction
+      listGroup.scrollTop = 0;
     });
   });
 
@@ -315,6 +316,7 @@ function handleMobileList(map, markers) {
       // If the list is expanded, collapse it without hiding
       // console.log("Collapsing list group without hiding");
       isExpanded = false;
+      listGroup.scrollTop = 0;
       updateListState(); // Update the list state
     } else {
       // If the list is hidden, remove hidden and expand it
