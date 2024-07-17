@@ -108,7 +108,7 @@ async function initMap(data) {
   const resetZoomElement = document.querySelector(".reset-zoom");
   if (resetZoomElement) {
     resetZoomElement.addEventListener("click", () => {
-      resetZoom(map, mapCoordinates, zoom); // Pass the map instance, coordinates and zoom info
+      resetZoom(map, mapCoordinates, zoom); // Pass the map instance, coordinates, and zoom info
     });
   }
 
@@ -132,7 +132,6 @@ async function initMap(data) {
       const element = document.querySelector(`#${item.id}`);
       if (element) {
         element.setAttribute("tabindex", "-1"); // Make the element focusable
-        // element.querySelector(".card-body").addEventListener("click", () => {
         element.addEventListener("click", () => {
           map.panTo(item.coordinates);
           map.setZoom(14);
@@ -140,6 +139,17 @@ async function initMap(data) {
         });
       }
     }
+  });
+
+  // Move map event listeners here
+  const listGroup = document.querySelector("#responseList");
+  const toggleListVisibility = () => {
+    listGroup.classList.remove("expanded");
+    listGroup.scrollTop = 0; // Scroll back to the top when hidden
+  };
+
+  ["drag", "idle", "click"].forEach((event) => {
+    map.addListener(event, toggleListVisibility);
   });
 }
 
@@ -215,20 +225,26 @@ function darkenHexColor(hex, percent) {
 
 function handleMobileList() {
   const listGroup = document.querySelector("#responseList");
-  
+
   // Initial state to track if the list is expanded
   let isExpanded = false;
 
   // Toggle the expanded class on click
   listGroup.addEventListener("click", (event) => {
-    // Check if the click target is a carousel control
-    if (!event.target.closest('.carousel-control-next') && 
-        !event.target.closest('.carousel-control-prev')) {
-      listGroup.classList.toggle("expanded");
-      isExpanded = !isExpanded; // Update the state
+    if (
+      !event.target.closest(".carousel-control-next") &&
+      !event.target.closest(".carousel-control-prev")
+    ) {
+      isExpanded = !isExpanded;
+      listGroup.classList.toggle("expanded", isExpanded);      
+
+      // Scroll to the top when collapsing
+      if (!isExpanded) {
+        listGroup.scrollTop = 0;
+      }
     }
   });
-  
+
   let startY;
   let endY;
 
@@ -242,15 +258,15 @@ function handleMobileList() {
 
   listGroup.addEventListener("touchend", () => {
     const threshold = 125; // Define a threshold for swipe detection
+    const isAtTop = listGroup.scrollTop === 0;
 
-    if (startY > endY + threshold && !isExpanded) {
-      // User swiped up and the list is not expanded
-      listGroup.classList.add("expanded");
-      isExpanded = true; // Update the state
+    if (startY > endY + threshold && !isExpanded && isAtTop) {
+      isExpanded = true;
+      listGroup.classList.add("expanded");      
     } else if (startY < endY - threshold && isExpanded) {
-      // User swiped down and the list is expanded
+      isExpanded = false;
       listGroup.classList.remove("expanded");
-      isExpanded = false; // Update the state
+      listGroup.scrollTop = 0; // Scroll back to the top
     }
   });
 }
