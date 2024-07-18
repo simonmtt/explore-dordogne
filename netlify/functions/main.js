@@ -39,7 +39,7 @@ export const handler = async (event) => {
 
     const enrichedData = await enrichData(recoOutput);
     const result = {
-      description: progData.fields["Description"],      
+      description: progData.fields["Description"],
       recommendations: enrichedData,
     };
 
@@ -88,6 +88,7 @@ async function fetchRecommendations(recommandationIds) {
 }
 
 async function getRecommendationsGeoLoc(data) {
+  console.log("getRecoGeoLoc data", data);
   const mapsKey = "AIzaSyDNRCNw9iqXO0kLf1GKzcKIdKzHcPBWrRo";
 
   const geoLocPromises = data.map(async (item) => {
@@ -166,10 +167,13 @@ async function getRecommendationsTagsColor(recommendations) {
       .fields;
     const categories = fields.filter((field) => field.name === "Catégorie")[0]
       .options.choices;
+    // console.log("fields", fields);
+    // console.log("categories", categories);
 
     const defaultColor = airtableColors.filter(
       (color) => color.name === "darken3"
     )[0].value;
+    // console.log('defaultColor', defaultColor);
 
     recommendations.forEach((reco) => {
       const fields = reco.fields;
@@ -192,13 +196,15 @@ async function getRecommendationsTagsColor(recommendations) {
 
     return recommendations;
   } catch (error) {
-    console.error(`Error in getTagColors: ${error.message}`);
+    console.error(
+      `Error in getRecommendationsTagsColor: ${error.message}, ${error.lineNumber}`
+    );
     return recommendations;
   }
 }
 
 async function enrichData(data) {
-  data = data.sort((a, b) => a["Ordre"] - b["Ordre"]);
+  data = data.sort((a, b) => a.fields["Ordre"] - b.fields["Ordre"]);
   data = await getRecommendationsTagsColor(data);
   data = await getRecommendationsGeoLoc(data);
   return data;
