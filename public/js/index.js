@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     const recoData = await response.json();
-    console.log(recoData)
+    // console.log(recoData)
 
     if (recoData.error) {
       throw new Error(recoData.error);
