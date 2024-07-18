@@ -102,8 +102,7 @@ async function initMap(data) {
   const mapId = "8b0247e6d638ccc9";
 
   const { Map } = await google.maps.importLibrary("maps");
-  const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
-  const { PinElement } = await google.maps.importLibrary("marker");
+  const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
 
   const map = new Map(document.querySelector("#map"), {
     center: mapCoordinates,
@@ -121,13 +120,13 @@ async function initMap(data) {
 
   //const infoWindow = new google.maps.InfoWindow();
   let markers = [];
-  data.forEach((item) => {
+  data.forEach((item, i) => {
     const borderColor = darkenHexColor(item.tagColor, 25) || "#000000";
     const pin = new PinElement({
       background: item.tagColor,
       borderColor,
-      glyph: "",
-      scale: 1.2,
+      glyph: `${i+1}`,
+      scale: 1.4,
     });
 
     const marker = new AdvancedMarkerElement({
@@ -135,7 +134,7 @@ async function initMap(data) {
       position: item.coordinates,
       title: item.fullAddress,
       content: pin.element,
-      gmpClickable: true,
+      gmpClickable: true,      
     });
 
     marker.customId = item.id;

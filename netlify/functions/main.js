@@ -199,6 +199,7 @@ async function getRecommendationsTagsColor(recommendations) {
 }
 
 async function enrichData(data) {
+  data = data.sort((a, b) => a["Ordre"] - b["Ordre"]);
   data = await getRecommendationsTagsColor(data);
   data = await getRecommendationsGeoLoc(data);
   return data;
