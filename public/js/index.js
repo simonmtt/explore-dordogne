@@ -308,7 +308,10 @@ function handleMobileList(map, markers) {
       const itemTop = item.offsetTop - itemOffset; // Get the top position of the clicked item
 
       // Scroll to the top of the clicked item
+      isExpanded = !isExpanded;
       listGroup.scrollTop = itemTop;
+      updateListState();
+      return;
     }
 
     if (isExpanded) {
