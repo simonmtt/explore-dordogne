@@ -88,16 +88,22 @@ async function fetchRecommendations(recommandationIds) {
 }
 
 async function getRecommendationsGeoLoc(data) {
-  console.log("getRecoGeoLoc data", data);
   const mapsKey = "AIzaSyDNRCNw9iqXO0kLf1GKzcKIdKzHcPBWrRo";
 
   const geoLocPromises = data.map(async (item) => {
     const fields = item.fields;
     const nom = fields["Nom du lieu"][0];
     const adresse = fields["Adresse postale"][0];
-    const query = `${nom} ${adresse}`.replace(/ /g, "+");
+
+    // Encode each part separately
+    const encodedNom = encodeURIComponent(nom);
+    const encodedAdresse = encodeURIComponent(adresse);
+
+    // Combine the encoded parts
+    const query = `${encodedNom} ${encodedAdresse}`;
 
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsKey}`;
+    console.log(url);
 
     try {
       const geoLocResponse = await fetch(url);
@@ -106,7 +112,7 @@ async function getRecommendationsGeoLoc(data) {
         const result = geoLocData.results[0];
 
         if (!result) {
-          console.error(`Failed to fetch geo loc for ${nom} ${adresse}`);
+          console.error(`Failed to fetch geo loc for ${nom}, ${error.message}`);
           return null;
         }
 
@@ -120,7 +126,7 @@ async function getRecommendationsGeoLoc(data) {
 
         return item;
       } else {
-        console.error(`Failed to fetch geo loc for ${nom} ${adresse}`);
+        console.error(`Failed to fetch geo loc for ${nom}`);
         return null;
       }
     } catch (error) {
