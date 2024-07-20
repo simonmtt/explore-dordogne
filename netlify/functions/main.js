@@ -92,8 +92,17 @@ async function getRecommendationsGeoLoc(data) {
 
   const geoLocPromises = data.map(async (item) => {
     const fields = item.fields;
-    const nom = fields["Nom du lieu"][0];
-    const adresse = fields["Adresse postale"][0];
+    const nom = fields?.["Nom du lieu"]?.[0];
+    const adresse = fields?.["Adresse postale"]?.[0];
+
+    if (!nom || !adresse) {
+      console.error(
+        `Missing "Nom du lieu" or "Adresse postale" for item: ${JSON.stringify(
+          item
+        )}`
+      );
+      return null;
+    }
 
     // Combine the encoded parts
     const query = encodeURIComponent(`${nom} ${adresse}`);
@@ -104,15 +113,16 @@ async function getRecommendationsGeoLoc(data) {
       const geoLocResponse = await fetch(url);
       if (geoLocResponse.ok) {
         const geoLocData = await geoLocResponse.json();
-        const result = geoLocData.results[0];
+        const results = geoLocData.results;
 
-        if (!result) {
+        if (!results || results.length === 0) {
           console.error(
-            `Failed to fetch geo loc for ${nom}, ${geoLocData.error_message}`
+            `No results found for geo loc for ${nom}, ${geoLocData.error_message}`
           );
           return null;
         }
 
+        const result = results[0];
         const geo = result.geometry;
         const lat = geo.location.lat;
         const lng = geo.location.lng;
@@ -128,7 +138,7 @@ async function getRecommendationsGeoLoc(data) {
       }
     } catch (error) {
       console.error(
-        `Failed to fetch geo loc for ${nom} ${adresse}: ${error.error_message}`
+        `Failed to fetch geo loc for ${nom} ${adresse}: ${error.message}`
       );
       return null;
     }
@@ -154,49 +164,61 @@ async function getRecommendationsTagsColor(recommendations) {
 
     const baseSchemaData = await baseSchemaResponse.json();
 
-    if (!baseSchemaData) {
+    if (!baseSchemaData || !baseSchemaData.tables) {
       console.error(`Failed to access base schema (json step)`);
       return recommendations;
     }
 
     const tables = baseSchemaData.tables;
 
-    if (!tables || tables.length === 0) {
-      console.error(`Failed to access base schema (no tables)`);
+    const adressesTable = tables.find((table) => table.name === "Adresses");
+    if (!adressesTable || !adressesTable.fields) {
+      console.error(
+        `Failed to access base schema (no Adresses table or fields)`
+      );
       return recommendations;
     }
 
-    const fields = tables.filter((table) => table.name === "Adresses")[0]
-      .fields;
-    const categories = fields.filter((field) => field.name === "Catégorie")[0]
-      .options.choices;
-    // console.log("fields", fields);
-    // console.log("categories", categories);
+    const categoryField = adressesTable.fields.find(
+      (field) => field.name === "Catégorie"
+    );
+    if (
+      !categoryField ||
+      !categoryField.options ||
+      !categoryField.options.choices
+    ) {
+      console.error(
+        `Failed to access base schema (no Catégorie field or choices)`
+      );
+      return recommendations;
+    }
 
-    const defaultColor = airtableColors.filter(
+    const categories = categoryField.options.choices;
+
+    const defaultColor = airtableColors.find(
       (color) => color.name === "darken3"
-    )[0].value;
-    // console.log('defaultColor', defaultColor);
+    )?.value;
+    if (!defaultColor) {
+      console.error(`Failed to find default color`);
+      return recommendations;
+    }
 
     recommendations.forEach((reco) => {
-      const fields = reco.fields;
-      if (fields) {
-        const recoCategoryArray = fields["Catégorie"];
-        if (recoCategoryArray) {
-          const recoCategory = recoCategoryArray[0];
-          const recoCatObj = categories.filter(
-            (cat) => cat.name === recoCategory
-          )[0];
-          if (recoCatObj) {
-            const airtableColor = recoCatObj.color;
-            const tagColor = airtableColors.filter(
-              (color) => color.name === airtableColor
-            )[0];
-            reco.tagColor = tagColor ? tagColor.value : defaultColor;
-          } else {
-            reco.tagColor = defaultColor;
-          }
+      const recoCategoryArray = reco.fields?.["Catégorie"];
+      if (recoCategoryArray && recoCategoryArray.length > 0) {
+        const recoCategory = recoCategoryArray[0];
+        const recoCatObj = categories.find((cat) => cat.name === recoCategory);
+        if (recoCatObj) {
+          const airtableColor = recoCatObj.color;
+          const tagColor = airtableColors.find(
+            (color) => color.name === airtableColor
+          );
+          reco.tagColor = tagColor ? tagColor.value : defaultColor;
+        } else {
+          reco.tagColor = defaultColor;
         }
+      } else {
+        reco.tagColor = defaultColor;
       }
     });
 
