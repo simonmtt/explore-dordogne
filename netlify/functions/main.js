@@ -88,22 +88,17 @@ async function fetchRecommendations(recommandationIds) {
 }
 
 async function getRecommendationsGeoLoc(data) {
-  const mapsKey = "AIzaSyDNRCNw9iqXO0kLf1GKzcKIdKzHcPBWrRo";
+  const mapsKey = "AIzaSyDI6yS0AfOpybJuxg0vZkOmCEyJQMhGTL8";
 
   const geoLocPromises = data.map(async (item) => {
     const fields = item.fields;
     const nom = fields["Nom du lieu"][0];
     const adresse = fields["Adresse postale"][0];
 
-    // Encode each part separately
-    const encodedNom = encodeURIComponent(nom);
-    const encodedAdresse = encodeURIComponent(adresse);
-
     // Combine the encoded parts
-    const query = `${encodedNom} ${encodedAdresse}`;
+    const query = encodeURIComponent(`${nom} ${adresse}`);
 
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsKey}`;
-    console.log(url);
 
     try {
       const geoLocResponse = await fetch(url);
@@ -112,7 +107,9 @@ async function getRecommendationsGeoLoc(data) {
         const result = geoLocData.results[0];
 
         if (!result) {
-          console.error(`Failed to fetch geo loc for ${nom}, ${error.message}`);
+          console.error(
+            `Failed to fetch geo loc for ${nom}, ${geoLocData.error_message}`
+          );
           return null;
         }
 
@@ -131,7 +128,7 @@ async function getRecommendationsGeoLoc(data) {
       }
     } catch (error) {
       console.error(
-        `Failed to fetch geo loc for ${nom} ${adresse}: ${error.message}`
+        `Failed to fetch geo loc for ${nom} ${adresse}: ${error.error_message}`
       );
       return null;
     }
@@ -184,27 +181,28 @@ async function getRecommendationsTagsColor(recommendations) {
     recommendations.forEach((reco) => {
       const fields = reco.fields;
       if (fields) {
-        const recoCategory = fields["Catégorie"][0];
-        const recoCatObj = categories.filter(
-          (cat) => cat.name === recoCategory
-        )[0];
-        if (recoCatObj) {
-          const airtableColor = recoCatObj.color;
-          const tagColor = airtableColors.filter(
-            (color) => color.name === airtableColor
+        const recoCategoryArray = fields["Catégorie"];
+        if (recoCategoryArray) {
+          const recoCategory = recoCategoryArray[0];
+          const recoCatObj = categories.filter(
+            (cat) => cat.name === recoCategory
           )[0];
-          reco.tagColor = tagColor ? tagColor.value : defaultColor;
-        } else {
-          reco.tagColor = defaultColor;
+          if (recoCatObj) {
+            const airtableColor = recoCatObj.color;
+            const tagColor = airtableColors.filter(
+              (color) => color.name === airtableColor
+            )[0];
+            reco.tagColor = tagColor ? tagColor.value : defaultColor;
+          } else {
+            reco.tagColor = defaultColor;
+          }
         }
       }
     });
 
     return recommendations;
   } catch (error) {
-    console.error(
-      `Error in getRecommendationsTagsColor: ${error.message}, ${error.lineNumber}`
-    );
+    console.error(`Error in getRecommendationsTagsColor: ${error.message}`);
     return recommendations;
   }
 }
