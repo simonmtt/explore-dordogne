@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     const recoData = await response.json();
-    // console.log(recoData)
+    console.log(recoData);
 
     if (recoData.error) {
       throw new Error(recoData.error);
@@ -67,9 +67,12 @@ function buildListItems(data) {
              <p class="card-text fw-light">${item.fields["Description personnalisée"]}</p>`
                : ``
            }
+           <p class="card-text fw-light mt-4">${item.fullAddress}</p>
            ${
              item.fields["Lien"]
-               ? `<a class="btn btn-secondary" href="${item.fields["Lien"]}" target="_blank">${
+               ? `<a class="btn btn-secondary" href="${
+                   item.fields["Lien"]
+                 }" target="_blank">${
                    item.fields["Message du lien"] || "Access"
                  }</a>`
                : ``
@@ -102,7 +105,9 @@ async function initMap(data) {
   const mapId = "8b0247e6d638ccc9";
 
   const { Map } = await google.maps.importLibrary("maps");
-  const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary("marker");
+  const { AdvancedMarkerElement, PinElement } = await google.maps.importLibrary(
+    "marker"
+  );
 
   const map = new Map(document.querySelector("#map"), {
     center: mapCoordinates,
@@ -125,7 +130,7 @@ async function initMap(data) {
     const pin = new PinElement({
       background: item.tagColor,
       borderColor,
-      glyph: `${i+1}`,
+      glyph: `${i + 1}`,
       scale: 1.4,
     });
 
@@ -134,7 +139,7 @@ async function initMap(data) {
       position: item.coordinates,
       title: item.fullAddress,
       content: pin.element,
-      gmpClickable: true,      
+      gmpClickable: true,
     });
 
     marker.customId = item.id;
