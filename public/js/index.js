@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     const recoData = await response.json();
-    console.log(recoData);
+    // console.log(recoData);
 
     if (recoData.error) {
       throw new Error(recoData.error);
@@ -67,10 +67,17 @@ function buildListItems(data) {
              <p class="card-text fw-light">${item.fields["Description personnalisée"]}</p>`
                : ``
            }
-           <p class="card-text fw-light mt-4">${item.fullAddress}</p>
+           <div class="mt-4">
+             <p class="card-text fw-light mb-0">${item.fullAddress}</p>
+              <button class="btn btn-outline-secondary btn-sm mt-2" onclick="copyToClipboard('${
+                item.fullAddress
+              }')">
+              Copy address               
+             </button>
+           </div>
            ${
              item.fields["Lien"]
-               ? `<a class="btn btn-secondary" href="${
+               ? `<a class="btn btn-primary mt-4" href="${
                    item.fields["Lien"]
                  }" target="_blank">${
                    item.fields["Message du lien"] || "Access"
@@ -354,4 +361,31 @@ function handleMobileList(map, markers) {
 function resetZoom(map, coordinates, zoom) {
   map.setCenter(coordinates);
   map.setZoom(zoom);
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showAlert("Address copied to clipboard", "success");
+  }).catch(err => {
+    console.error("Could not copy text: ", err);
+    showAlert("Failed to copy address", "danger");
+  });
+}
+
+function showAlert(message, type) {
+  const alertContainer = document.querySelector("#alert-container");
+  const alertDiv = document.createElement("div");
+  alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+  alertDiv.role = "alert";
+  alertDiv.innerHTML = `
+    ${message}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  `;
+  alertContainer.appendChild(alertDiv);
+
+  setTimeout(() => {
+    alertDiv.classList.remove("show");
+    alertDiv.classList.add("hide");
+    alertDiv.addEventListener("transitionend", () => alertDiv.remove());
+  }, 3000); // Adjust time as needed
 }

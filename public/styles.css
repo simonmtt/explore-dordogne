@@ -76,6 +76,26 @@ img.d-block.w-100 {
     height: 16px;
 }
 
+#alert-container {
+    position: fixed;
+    bottom: 0;
+    left: 20px;
+    z-index: 1050; /* Ensure it appears above other elements */
+    width: auto;
+    max-width: 300px;
+  }
+  
+  /* Style for the alerts */
+  .alert {
+    margin-bottom: 1rem; /* Space between alerts */
+    opacity: 1; /* Ensure alerts are fully opaque */
+    transition: opacity 0.5s ease-in-out; /* Smooth transition for showing/hiding */
+  }
+  
+  .alert.hide {
+    opacity: 0; /* Fade out the alert */
+  }
+
 @media (max-width: 768px) {
     .main-wrapper {
         position: relative;
